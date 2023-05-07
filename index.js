@@ -26,7 +26,7 @@ const options = {
 
 var downLoadingModel = true;
 const model = "./bert_ner_ft.onnx";//"./bert_ner_int8.onnx";
-let INPUT = "As a surveyor, I want to be able to log into a system";
+let INPUT = "As a warmup surveyor, I want to be able to log into a warmup system";
 
 async function loadConfig() {
   return fetch('./config.json').then(d => d.json());
@@ -150,6 +150,61 @@ function softmax(tensor) {
 
   return softmaxData;
 }
+function getLabeledWords(text, tokens, scores, labels, skippingLabel) {
+  const importantWords = [];
+  let currentWord = '';
+  let currentLabel = null;
+  let currentScore = 0;
+  let startIndex = 0;
+  let endIndex = 0;
+  let lastIndex = 0;
+  
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i];
+    const label = labels[i];
+    const score = scores[i];
+
+    const subtokenMatch = token.match(/^#+(.*)$/);
+    if (subtokenMatch) {
+      currentWord += subtokenMatch[1];
+      lastIndex = text.indexOf(subtokenMatch[1], lastIndex);
+      lastIndex += subtokenMatch[1].length;
+      endIndex = lastIndex;
+      if (label !== skippingLabel) {
+        currentLabel = label;
+        currentScore = score;
+      }
+    }
+    else{
+      if (currentWord && currentLabel!==skippingLabel) {
+        importantWords.push({
+          word: currentWord,
+          start: startIndex,
+          end: endIndex,
+          label: currentLabel,
+          score: currentScore
+        });
+      }
+      currentWord = token;
+      startIndex = text.indexOf(token, lastIndex);
+      endIndex = startIndex + token.length;
+      lastIndex = endIndex;
+      currentLabel = label;
+      currentScore = score;
+    }    
+  }
+  if (currentWord && currentLabel!==skippingLabel) {
+    importantWords.push({
+      word: currentWord,
+      start: startIndex,
+      end: endIndex,
+      label: currentLabel,
+      score: currentScore
+    });
+  }
+
+  return importantWords;
+}
 
 async function lm_inference(text) {
   try { 
@@ -210,15 +265,17 @@ async function lm_inference(text) {
         ls.push(label);
         ss.push(score);
     }
-    return display(encoding,duration,JSON.stringify(ls)+"<br/>"+JSON.stringify(ss));
+
+    let labeledWords = getLabeledWords(text, encoding.tokens, ss, ls, 'O');
+    return display(encoding,duration,JSON.stringify(labeledWords));
   } catch (e) {
-    return display(encoding,0.0,e);
+    console.error(e);//return display(encoding,0.0,e);
   }
 }    
 
 function display(encoding, duration, results) {
     document.getElementById("input").innerHTML = INPUT;
-    document.getElementById("tokens").innerHTML = "[" + encoding.tokens + "]"
+    document.getElementById("tokens").innerHTML =  JSON.stringify(encoding.tokens);
     document.getElementById("input_ids").innerHTML = "[" + encoding.input_ids + "]";
     document.getElementById("results").innerHTML = results;
     document.getElementById("duration").innerHTML = duration;
