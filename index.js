@@ -25,7 +25,7 @@ const options = {
 };
 
 var downLoadingModel = true;
-const model = "./bert_ner_int8.onnx";
+const model = "./bert_ner_ft.onnx";//"./bert_ner_int8.onnx";
 let INPUT = "As a surveyor, I want to be able to log into a system";
 
 async function loadConfig() {
