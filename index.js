@@ -205,10 +205,32 @@ function getLabeledWords(text, tokens, scores, labels, skippingLabel) {
 
   return importantWords;
 }
-
+class TokenizerCached extends Tokenizer {
+  static from_pretrained(name) {
+    let path = `${name}_tokenizer.json`;
+    return fetch(path)
+      .then(response =>{
+        if (!response.ok) {
+          throw Error(response.statusText);
+        }
+        console.log(`Loaded from ${path}`);
+        return response;
+      })
+      .then(response => response.text())
+      .then(json => new Tokenizer(json))
+      .catch(e=>{
+        let hfPath = `https://huggingface.co/${name}/resolve/main/tokenizer.json`;
+        console.log(`Failed to load from ${path}, try to load from ${hfPath} instead`,e);
+        return super.from_pretrained(name);
+        /*return fetch(`https://huggingface.co/${name}/resolve/main/tokenizer.json`)
+          .then(response => response.text())
+          .then(json => new Tokenizer(json));*/
+      });
+  }
+}
 async function lm_inference(text) {
   try { 
-    let tokenizer = await Tokenizer.from_pretrained("bert-base-cased");
+    let tokenizer = await TokenizerCached.from_pretrained("bert-base-cased");
     const encoding = tokenizer.encode(text, false);//pub fn encode(&self, text: &str, add_special_tokens: bool) -> EncodingWasm {
     if(encoding.tokens.length === 0) {
       display(encoding,0.0, "[]");
