@@ -1,4 +1,4 @@
-# BERT inference with ONNX Web Runtime and WASM port of [Huggingface Tokenizers](https://github.com/huggingface/tokenizers) in the browser with JS code.
+# BERT inference with ONNX Web Runtime and [WASM port](https://blog.mithrilsecurity.io/porting-tokenizers-to-wasm/) of [Huggingface Tokenizers](https://github.com/huggingface/tokenizers) in the browser with JS code.
 
 ## Model and Dataset
 
